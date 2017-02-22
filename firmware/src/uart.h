@@ -27,7 +27,7 @@ extern "C" {
 
 void Uart_InitializeQueue();
 
-int Uart_ReadFromQueue(void* pvBuffer, BaseType_t *pxHigherPriorityTaskWoken);
+int Uart_ReadFromQueue(void* pvBuffer);
 
 void Uart_SendToQueue(char buffer);
 

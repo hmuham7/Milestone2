@@ -114,6 +114,11 @@ typedef struct {
 } MsgObj;
 
 typedef struct {
+    
+    int32_t MessagesDropped;
+    int32_t ErrorCount;
+    int32_t GoodCount;
+    
     unsigned char Req_From_Flagrover;
     unsigned char Req_From_Sensorrover;
     unsigned char Req_From_Tagrover;
@@ -133,10 +138,6 @@ typedef struct {
     unsigned char Res_To_Sensorrover;
     unsigned char Res_To_Tagrover;
     unsigned char Res_To_CMrover;
-    
-    int32_t MessagesDropped;
-    int32_t ErrorCount;
-    int32_t GoodCount;
 } StatObjectType;
 /*******************************************************************************
   Function:

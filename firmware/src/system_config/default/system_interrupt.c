@@ -68,6 +68,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "message_thread.h"
 #include "rx_thread.h"
 #include "system_definitions.h"
+#include "debug.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -78,16 +79,19 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
     
 void IntHandlerDrvTmrInstance0(void)
 {
+    dbgPinsDirection();
+    dbgOutputVal(0x03);
     PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_2);
 }
     
 void IntHandlerDrvTmrInstance1(void)
 {
     BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
-    
+    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_4);
     MsgObj obj;
     obj.Type = SEND_REQUEST;
-    
+    dbgPinsDirection();
+    dbgOutputVal(0x03);
     switch(MYROVER){
         case SENSOR_ROVER:
             break;
@@ -112,6 +116,7 @@ void IntHandlerDrvTmrInstance1(void)
 }
  void IntHandlerDrvUsartInstance0(void)
 {
+     /*
     BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
     
     // Receive Code
@@ -119,9 +124,39 @@ void IntHandlerDrvTmrInstance1(void)
     {
         RX_THREAD_SendToQueueISR(DRV_USART0_ReadByte(), &pxHigherPriorityTaskWoken); // read received byte
     }
-    
-    
+    */ 
+    ////////////////////////////////////////////////////////////////////////////////
+     
+     
+    if(PLIB_INT_SourceFlagGet(INT_ID_0, INT_SOURCE_USART_1_RECEIVE))
+    {
+        /* Make sure receive buffer has data availible */
+        if (PLIB_USART_ReceiverDataIsAvailable(USART_ID_1))
+        {
+            /* Get the data from the buffer */
+            RX_THREAD_SendToQueueISR(PLIB_USART_ReceiverByteReceive(USART_ID_1));
+		}
+    PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_USART_1_RECEIVE);
+    }
     // Transmission Code
+    //////////////////////////////////////////////////////////////////////////////////////////
+    if(PLIB_INT_SourceFlagGet(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT))
+    {
+        if (PLIB_USART_TransmitterIsEmpty (USART_ID_1))
+        {
+            char buf;
+            if(Uart_ReadFromQueue(&buf)) 
+            {
+                PLIB_USART_TransmitterByteSend(USART_ID_1, buf);
+            }
+            
+            PLIB_USART_TransmitterByteSend(USART_ID_1, 'b');
+        }
+        PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
+//        PLIB_USART_TransmitterDisable (USART_ID_1);
+    }
+    /////////////////////////////////////////////////////////////////////////////////////////
+    /*
     if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_TRANSMIT) && !(DRV_USART_TRANSFER_STATUS_TRANSMIT_FULL & DRV_USART0_TransferStatus()) )
     {
         char buf;
@@ -132,25 +167,13 @@ void IntHandlerDrvTmrInstance1(void)
             SYS_INT_SourceDisable(INT_SOURCE_USART_1_TRANSMIT);
         }
     }
+    
     DRV_USART_TasksTransmit(sysObj.drvUsart0);
     DRV_USART_TasksReceive(sysObj.drvUsart0);
     DRV_USART_TasksError(sysObj.drvUsart0);
     portEND_SWITCHING_ISR(pxHigherPriorityTaskWoken);
-}
-
- 
- 
-
- 
-
- 
-
- 
-
- 
-
- 
-  
+    */
+} 
 /*******************************************************************************
  End of File
 */

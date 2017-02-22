@@ -16,8 +16,8 @@ void InitializeISRQueues() {
     Uart_InitializeQueue();
 }
 
-int Uart_ReadFromQueue(void* pvBuffer, BaseType_t *pxHigherPriorityTaskWoken) {
-    int ret = xQueueReceiveFromISR(uartqueue, pvBuffer, pxHigherPriorityTaskWoken);
+int Uart_ReadFromQueue(void* pvBuffer) {
+    int ret = xQueueReceiveFromISR(uartqueue, pvBuffer, portMAX_DELAY);
     return ret;
 }
 

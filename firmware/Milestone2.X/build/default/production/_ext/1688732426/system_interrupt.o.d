@@ -272,4 +272,5 @@ build/default/production/_ext/1688732426/system_interrupt.o:  \
 ../src/tx_thread.h  \
 ../src/message_thread.h  \
  ../src/rx_thread.h  \
-../src/system_config/default/system_definitions.h 
+../src/system_config/default/system_definitions.h  \
+ ../src/debug.h 

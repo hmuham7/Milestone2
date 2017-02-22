@@ -101,6 +101,8 @@ void RX_THREAD_Tasks ( void )
 {
     MsgObj obj;
     obj.Type = SEND_RESPONSE;
+    dbgPinsDirection();
+    dbgOutputVal(0x03);
     char c;
     while(1){
         

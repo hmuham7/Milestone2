@@ -103,6 +103,9 @@ void TX_THREAD_Tasks ( void )
 {
     Tx_DataType obj;
     char message[SIZE];
+    DRV_TMR0_Start();
+    dbgPinsDirection();
+    dbgOutputVal(0x03);
     while(1){
         
         TX_THREAD_ReadFromQueue(&obj);
@@ -112,7 +115,9 @@ void TX_THREAD_Tasks ( void )
         for(i = 0; i < len; i++) {
             Uart_SendToQueue(message[i]);
         }
-        SYS_INT_SourceEnable(INT_SOURCE_USART_1_TRANSMIT);
+        PLIB_USART_TransmitterEnable (USART_ID_1);
+        PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
+        //SYS_INT_SourceEnable(INT_SOURCE_USART_1_TRANSMIT);
     }
 }
 

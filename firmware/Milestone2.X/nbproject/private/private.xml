@@ -2,6 +2,13 @@
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group/>
+        <group>
+            <file>file:/C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/message_thread.c</file>
+            <file>file:/C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/rx_thread.c</file>
+            <file>file:/C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/system_config/default/system_interrupt.c</file>
+            <file>file:/C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/tx_thread.c</file>
+            <file>file:/C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/uart.c</file>
+            <file>file:/C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/messages.c</file>
+        </group>
     </open-files>
 </project-private>

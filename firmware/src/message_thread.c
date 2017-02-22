@@ -82,6 +82,8 @@ void MESSAGE_THREAD_Initialize ( void )
     MESSAGE_THREAD_InitializeQueue();
     DRV_TMR1_Start();
     resetSystemClock();
+    dbgPinsDirection();
+    dbgOutputVal(0x07);
 }
 
 
@@ -104,7 +106,8 @@ void MESSAGE_THREAD_Tasks ( void )
     type_t type = strange;
     items_t items[12];
     int numItems;
-    
+    dbgPinsDirection();
+    dbgOutputVal(0x03);
     while(1) {
         
         initialize_parser();
