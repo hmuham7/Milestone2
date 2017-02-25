@@ -190,9 +190,8 @@ void SYS_Initialize ( void* data )
     /* Initialize the Application */
     MOTOR_THREAD_Initialize();
     CONTROL_THREAD_Initialize();
-    TX_THREAD_Initialize();
+    UART_THREAD_Initialize();
     MESSAGE_THREAD_Initialize();
-    RX_THREAD_Initialize();
 }
 
 

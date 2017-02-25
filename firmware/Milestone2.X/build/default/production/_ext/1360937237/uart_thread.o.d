@@ -1,6 +1,5 @@
-build/default/debug/_ext/1360937237/messages.o:  \
-../src/messages.c  \
- ../src/messages.h  \
+build/default/production/_ext/1360937237/uart_thread.o:  \
+ ../src/uart_thread.c  \
 ../src/debug.h  \
  ../src/system_config/default/system_config.h  \
  ../src/system_config/default/system_definitions.h  \
@@ -262,8 +261,9 @@ build/default/debug/_ext/1360937237/messages.o:  \
  ../../../../framework/peripheral/ports/processor/../templates/ports_ChangeNoticeEdgeStatus_Unsupported.h  \
  ../src/motor_thread.h  \
 ../src/control_thread.h  \
-../src/tx_thread.h  \
+../src/uart_thread.h  \
  ../src/message_thread.h  \
+../src/messages.h  \
 ../src/jsmn.h  \
-../src/json_parser.h  \
- ../src/rx_thread.h 
+ ../src/json_parser.h  \
+../src/message_thread.h 

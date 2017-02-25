@@ -253,10 +253,6 @@
         <Checksum>28934989AE9EBEA1574B5FEAD3F56DFF</Checksum>
       </Template>
       <Template>
-        <Name>tx_thread.h</Name>
-        <Path>Header Files/app</Path>
-      </Template>
-      <Template>
         <Name>drv_tmr_static.h</Name>
         <Path>Header Files/app/system_config/default/framework/driver/tmr</Path>
         <Checksum>3848B1C3EC270575ACBA3B9AE1CB12DD</Checksum>
@@ -267,8 +263,8 @@
         <Checksum>2CAE56994AB8C4966A293572681FF5BE</Checksum>
       </Template>
       <Template>
-        <Name>tx_thread.c</Name>
-        <Path>Source Files/app</Path>
+        <Name>uart_thread.h</Name>
+        <Path>Header Files/app</Path>
       </Template>
       <Template>
         <Name>drv_usart_mapping.c</Name>
@@ -301,7 +297,8 @@
       <Template>
         <Name>system_interrupt.c</Name>
         <Path>Source Files/app/system_config/default</Path>
-        <Checksum>494ACE23E6B4E49A00EF6D930F048150</Checksum>
+        <Checksum>09C9A6D17E8FE4F7E9F103DA8748B4C3</Checksum>
+        <ProjectFileChecksum>3D0A7A6DE697B6B78C1471AAFE34557F</ProjectFileChecksum>
       </Template>
       <Template>
         <Name>motor_thread.h</Name>
@@ -313,6 +310,10 @@
         <Checksum>E8C935BED4628875A8C3428DDD07355C</Checksum>
       </Template>
       <Template>
+        <Name>uart_thread.c</Name>
+        <Path>Source Files/app</Path>
+      </Template>
+      <Template>
         <Name>drv_usart_static.c</Name>
         <Path>Source Files/app/system_config/default/framework/driver/usart/src</Path>
         <Checksum>2A4AED7552D145ED28C2C52BFC04AD9D</Checksum>
@@ -320,7 +321,7 @@
       <Template>
         <Name>system_init.c</Name>
         <Path>Source Files/app/system_config/default</Path>
-        <Checksum>2F124345053B95E0114E2907862EA012</Checksum>
+        <Checksum>5623135405B5297661A290369A2AFC23</Checksum>
       </Template>
       <Template>
         <Name>main.c</Name>
@@ -333,16 +334,12 @@
       <Template>
         <Name>system_definitions.h</Name>
         <Path>Header Files/app/system_config/default</Path>
-        <Checksum>8D74C1EE0B2224680E2F1BB40085C3F4</Checksum>
+        <Checksum>2E972D0BE1BBCE4B66AF2DAA5F3322BB</Checksum>
       </Template>
       <Template>
         <Name>system_exceptions.c</Name>
         <Path>Source Files/app/system_config/default</Path>
         <Checksum>C111969CA43D6CEA1E9E33A6164E7AE0</Checksum>
-      </Template>
-      <Template>
-        <Name>rx_thread.c</Name>
-        <Path>Source Files/app</Path>
       </Template>
       <Template>
         <Name>drv_usart_static.h</Name>
@@ -356,16 +353,12 @@
       <Template>
         <Name>system_tasks.c</Name>
         <Path>Source Files/app/system_config/default</Path>
-        <Checksum>110FD475104701933DE3E102E213E4BF</Checksum>
-      </Template>
-      <Template>
-        <Name>rx_thread.h</Name>
-        <Path>Header Files/app</Path>
+        <Checksum>1D370463EC32B12D468E9A105980D5D1</Checksum>
       </Template>
       <Template>
         <Name>system_config.h</Name>
         <Path>Header Files/app/system_config/default</Path>
-        <Checksum>67EAD5A9604D71E6E25C3FADCD0AEB37</Checksum>
+        <Checksum>B50D4790427E7ADA4A4FAD1F8E979D88</Checksum>
       </Template>
       <Template>
         <Name>drv_tmr_static.c</Name>
@@ -394,11 +387,11 @@
         <Include value="../src/system_config/default"/>
       </C32-AS>
       <C32>
-        <Include value="C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src"/>
-        <Include value="C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/system_config/default"/>
-        <Include value="C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/default"/>
-        <Include value="C:/microchip/harmony/v1_09/framework"/>
-        <Include value="C:/microchip/harmony/v1_09/apps/Milestone2/firmware/src/system_config/default/framework"/>
+        <Include value="C:\microchip\harmony\v1_09\apps\Milestone2\firmware\src"/>
+        <Include value="C:\microchip\harmony\v1_09\apps\Milestone2\firmware\src\system_config\default"/>
+        <Include value="C:\microchip\harmony\v1_09\apps\Milestone2\firmware\src\default"/>
+        <Include value="C:\microchip\harmony\v1_09\framework"/>
+        <Include value="C:\microchip\harmony\v1_09\apps\Milestone2\firmware\src\system_config\default\framework"/>
         <Include value="../../../../third_party/rtos/FreeRTOS/Source/portable/MPLAB/PIC32MX"/>
         <Include value="../../../../third_party/rtos/FreeRTOS/Source/include"/>
         <Include value="../src/system_config/default"/>

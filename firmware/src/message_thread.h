@@ -69,6 +69,12 @@ extern "C" {
 #endif
 
 typedef struct {
+    char Destination;
+    char MsgCount;
+    char Data[SIZE];
+} Tx_DataType;
+    
+typedef struct {
     float x;
     float y;
 } Coordinates;

@@ -55,7 +55,6 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 #include "message_thread.h"
 #include "message_thread_public.h"
-#include "tx_thread_public.h"
 #include "json_parser.h"
 #include "messages.h"
 
@@ -80,7 +79,6 @@ void MESSAGE_THREAD_InitializeQueue() {
 void MESSAGE_THREAD_Initialize ( void )
 {
     MESSAGE_THREAD_InitializeQueue();
-    DRV_TMR1_Start();
     resetSystemClock();
     dbgPinsDirection();
     dbgOutputVal(0x07);
@@ -108,14 +106,19 @@ void MESSAGE_THREAD_Tasks ( void )
     int numItems;
     dbgPinsDirection();
     dbgOutputVal(0x03);
+    
+    DRV_TMR0_Start();
+    DRV_TMR1_Start();
+    dbgPinsDirection();
+    dbgOutputVal(0x05);
     while(1) {
         
         initialize_parser();
         MsgObj obj;
         memset(&obj, 0, sizeof(MsgObj));
 
-        Tx_DataType tx_thread_obj;
-        memset(&tx_thread_obj, 0, sizeof(Tx_DataType));
+        Tx_DataType tx_obj;
+        memset(&tx_obj, 0, sizeof(Tx_DataType));
 
         MESSAGE_THREAD_ReadFromQueue(&obj);
         
@@ -173,12 +176,12 @@ void MESSAGE_THREAD_Tasks ( void )
                         }
 
                         int i = 0;
-                        tx_thread_obj.Destination = obj.External.Source;
-                        sprintf(tx_thread_obj.Data, "{\"type\":\"Response\"");
+                        tx_obj.Destination = obj.External.Source;
+                        sprintf(tx_obj.Data, "{\"type\":\"Response\"");
                         for(i = 0; i < numItems; i++) {
                             switch(items[i]) {
                                 case CommStats_flag_rover: case CommStats_sensor_rover: case CommStats_tag_rover: case CommStats_cm_rover: {
-                                    sprintf(tx_thread_obj.Data+strlen(tx_thread_obj.Data), 
+                                    sprintf(tx_obj.Data+strlen(tx_obj.Data), 
                                         ",\"CommStats%s\":{"
                                         "\"myName\":\"%s\","
                                         "\"numGoodMessagesRecved\":\"%d\","
@@ -197,41 +200,41 @@ void MESSAGE_THREAD_Tasks ( void )
                                         statObject.Req_To_Sensorrover + statObject.Req_To_Flagrover + statObject.Req_To_Tagrover + statObject.Req_To_CMrover,
                                         statObject.Res_To_Sensorrover + statObject.Res_To_Flagrover + statObject.Res_To_Tagrover + statObject.Res_To_CMrover
                                         );
-                                    tx_thread_obj.Destination = SERVER;
+                                    tx_obj.Destination = SERVER;
                                     break;
                                 }
                                 case SensorData: {
-                                    sprintf(tx_thread_obj.Data+strlen(tx_thread_obj.Data), ",\"SensorData\":\"%0.02f\"", internalData.sensordata);
+                                    sprintf(tx_obj.Data+strlen(tx_obj.Data), ",\"SensorData\":\"%0.02f\"", internalData.sensordata);
                                     break;
                                 }
                                 case msLocalTime:{
-                                    sprintf(tx_thread_obj.Data+strlen(tx_thread_obj.Data), ",\"msLocalTime\":\"%d\"", getSystemClock() * 10);
-                                    tx_thread_obj.Destination = obj.External.Source;
+                                    sprintf(tx_obj.Data+strlen(tx_obj.Data), ",\"msLocalTime\":\"%d\"", getSystemClock() * 10);
+                                    tx_obj.Destination = obj.External.Source;
                                     break;
                                 }
                                 default:
                                     break;
                             }
                         }
-                        sprintf(tx_thread_obj.Data+strlen(tx_thread_obj.Data),"}");
+                        sprintf(tx_obj.Data+strlen(tx_obj.Data),"}");
                         switch(obj.External.Source) {
                             case SENSOR_ROVER: {
-                                tx_thread_obj.MsgCount = statObject.Res_To_Sensorrover;
+                                tx_obj.MsgCount = statObject.Res_To_Sensorrover;
                                 statObject.Res_To_Sensorrover++;
                                 break;
                             }
                             case FLAG_ROVER: {
-                                tx_thread_obj.MsgCount = statObject.Res_To_Flagrover;
+                                tx_obj.MsgCount = statObject.Res_To_Flagrover;
                                 statObject.Res_To_Flagrover++;
                                 break;
                             }
                             case TAG_ROVER: {
-                                tx_thread_obj.MsgCount = statObject.Res_To_Tagrover;
+                                tx_obj.MsgCount = statObject.Res_To_Tagrover;
                                 statObject.Res_To_Tagrover++;
                                 break;
                             }
                             case CM_ROVER: {
-                                tx_thread_obj.MsgCount = statObject.Res_To_CMrover;
+                                tx_obj.MsgCount = statObject.Res_To_CMrover;
                                 statObject.Res_To_CMrover++;
                                 break;
                             }
@@ -239,7 +242,14 @@ void MESSAGE_THREAD_Tasks ( void )
                                 break;
                             }
                         }
-                        TX_THREAD_SendToQueue(tx_thread_obj);
+                        char message[SIZE];
+                        int len = messagecreator(message, tx_obj.Data, tx_obj.Destination, tx_obj.MsgCount);
+                        int k;
+                        for(k = 0; k < len; k++) {
+                            UART_THREAD_SendToQueue(message[k]);
+                        }
+                        PLIB_USART_TransmitterEnable (USART_ID_1);
+                        PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
                         break;
                     }
                     case response: {
@@ -274,23 +284,23 @@ void MESSAGE_THREAD_Tasks ( void )
             case SEND_REQUEST: {
                 switch(obj.Request) {
                     case FRtoSR: {
-                        sprintf(tx_thread_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
-                        tx_thread_obj.Destination = SENSOR_ROVER;
-                        tx_thread_obj.MsgCount = statObject.Req_To_Sensorrover;
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
+                        tx_obj.Destination = SENSOR_ROVER;
+                        tx_obj.MsgCount = statObject.Req_To_Sensorrover;
                         statObject.Req_To_Sensorrover++;
                         break;
                     }
                     case TRtoSR: {
-                        sprintf(tx_thread_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
-                        tx_thread_obj.Destination = SENSOR_ROVER;
-                        tx_thread_obj.MsgCount = statObject.Req_To_Sensorrover;
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
+                        tx_obj.Destination = SENSOR_ROVER;
+                        tx_obj.MsgCount = statObject.Req_To_Sensorrover;
                         statObject.Req_To_Sensorrover++;
                         break;
                     }
                     case CMRtoSR: {
-                        sprintf(tx_thread_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
-                        tx_thread_obj.Destination = SENSOR_ROVER;
-                        tx_thread_obj.MsgCount = statObject.Req_To_Sensorrover;
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
+                        tx_obj.Destination = SENSOR_ROVER;
+                        tx_obj.MsgCount = statObject.Req_To_Sensorrover;
                         statObject.Req_To_Sensorrover++;
                         break;
                     }
@@ -298,7 +308,14 @@ void MESSAGE_THREAD_Tasks ( void )
                         continue;
                     }
                 }
-                TX_THREAD_SendToQueue(tx_thread_obj);
+                char message[SIZE];
+                int len = messagecreator(message, tx_obj.Data, tx_obj.Destination, tx_obj.MsgCount);
+                int i;
+                for(i = 0; i < len; i++) {
+                    UART_THREAD_SendToQueue(message[i]);
+                }
+                PLIB_USART_TransmitterEnable (USART_ID_1);
+                PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
                 break;
             }
             case UPDATE: {

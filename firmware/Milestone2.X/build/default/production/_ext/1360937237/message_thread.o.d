@@ -261,11 +261,9 @@ build/default/production/_ext/1360937237/message_thread.o:  \
  ../../../../framework/peripheral/ports/processor/../templates/ports_ChangeNoticeEdgeStatus_Unsupported.h  \
  ../src/motor_thread.h  \
 ../src/control_thread.h  \
-../src/tx_thread.h  \
- ../src/messages.h  \
-../src/message_thread.h  \
-../src/rx_thread.h  \
- ../src/jsmn.h  \
-../src/json_parser.h  \
-../src/message_thread_public.h  \
- ../src/tx_thread_public.h 
+../src/uart_thread.h  \
+ ../src/message_thread.h  \
+../src/messages.h  \
+../src/jsmn.h  \
+ ../src/json_parser.h  \
+../src/message_thread_public.h 

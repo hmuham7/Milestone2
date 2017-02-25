@@ -67,9 +67,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "task.h"
 #include "motor_thread.h"
 #include "control_thread.h"
-#include "tx_thread.h"
+#include "uart_thread.h"
 #include "message_thread.h"
-#include "rx_thread.h"
 
 
 // DOM-IGNORE-BEGIN

@@ -61,12 +61,9 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 #include <xc.h>
 #include <sys/attribs.h>
-#include "uart.h"
 #include "motor_thread.h"
 #include "control_thread.h"
-#include "tx_thread.h"
 #include "message_thread.h"
-#include "rx_thread.h"
 #include "system_definitions.h"
 #include "debug.h"
 
@@ -81,6 +78,8 @@ void IntHandlerDrvTmrInstance0(void)
 {
     dbgPinsDirection();
     dbgOutputVal(0x03);
+    PLIB_USART_TransmitterEnable (USART_ID_1);
+    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
     PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_2);
 }
     
@@ -134,7 +133,7 @@ void IntHandlerDrvTmrInstance1(void)
         if (PLIB_USART_ReceiverDataIsAvailable(USART_ID_1))
         {
             /* Get the data from the buffer */
-            RX_THREAD_SendToQueueISR(PLIB_USART_ReceiverByteReceive(USART_ID_1));
+            UART_THREAD_SendToQueueISR(PLIB_USART_ReceiverByteReceive(USART_ID_1));
 		}
     PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_USART_1_RECEIVE);
     }
@@ -142,10 +141,11 @@ void IntHandlerDrvTmrInstance1(void)
     //////////////////////////////////////////////////////////////////////////////////////////
     if(PLIB_INT_SourceFlagGet(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT))
     {
+        PLIB_USART_TransmitterByteSend(USART_ID_1, 'c');
         if (PLIB_USART_TransmitterIsEmpty (USART_ID_1))
         {
             char buf;
-            if(Uart_ReadFromQueue(&buf)) 
+            if(UART_THREAD_ReadFromQueue(&buf)) 
             {
                 PLIB_USART_TransmitterByteSend(USART_ID_1, buf);
             }

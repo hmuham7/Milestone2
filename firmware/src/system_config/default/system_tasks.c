@@ -56,9 +56,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "system_definitions.h"
 #include "motor_thread.h"
 #include "control_thread.h"
-#include "tx_thread.h"
+#include "uart_thread.h"
 #include "message_thread.h"
-#include "rx_thread.h"
 
 
 // *****************************************************************************
@@ -72,9 +71,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 static void _SYS_Tasks ( void );
 static void _MOTOR_THREAD_Tasks(void);
 static void _CONTROL_THREAD_Tasks(void);
-static void _TX_THREAD_Tasks(void);
+static void _UART_THREAD_Tasks(void);
 static void _MESSAGE_THREAD_Tasks(void);
-static void _RX_THREAD_Tasks(void);
 
 
 // *****************************************************************************
@@ -108,19 +106,14 @@ void SYS_Tasks ( void )
                 "CONTROL_THREAD Tasks",
                 1024, NULL, 1, NULL);
 
-    /* Create OS Thread for TX_THREAD Tasks. */
-    xTaskCreate((TaskFunction_t) _TX_THREAD_Tasks,
-                "TX_THREAD Tasks",
+    /* Create OS Thread for UART_THREAD Tasks. */
+    xTaskCreate((TaskFunction_t) _UART_THREAD_Tasks,
+                "UART_THREAD Tasks",
                 1024, NULL, 1, NULL);
 
     /* Create OS Thread for MESSAGE_THREAD Tasks. */
     xTaskCreate((TaskFunction_t) _MESSAGE_THREAD_Tasks,
                 "MESSAGE_THREAD Tasks",
-                1024, NULL, 1, NULL);
-
-    /* Create OS Thread for RX_THREAD Tasks. */
-    xTaskCreate((TaskFunction_t) _RX_THREAD_Tasks,
-                "RX_THREAD Tasks",
                 1024, NULL, 1, NULL);
 
     /**************
@@ -189,17 +182,17 @@ static void _CONTROL_THREAD_Tasks(void)
 
 /*******************************************************************************
   Function:
-    void _TX_THREAD_Tasks ( void )
+    void _UART_THREAD_Tasks ( void )
 
   Summary:
-    Maintains state machine of TX_THREAD.
+    Maintains state machine of UART_THREAD.
 */
 
-static void _TX_THREAD_Tasks(void)
+static void _UART_THREAD_Tasks(void)
 {
     while(1)
     {
-        TX_THREAD_Tasks();
+        UART_THREAD_Tasks();
     }
 }
 
@@ -217,23 +210,6 @@ static void _MESSAGE_THREAD_Tasks(void)
     while(1)
     {
         MESSAGE_THREAD_Tasks();
-    }
-}
-
-
-/*******************************************************************************
-  Function:
-    void _RX_THREAD_Tasks ( void )
-
-  Summary:
-    Maintains state machine of RX_THREAD.
-*/
-
-static void _RX_THREAD_Tasks(void)
-{
-    while(1)
-    {
-        RX_THREAD_Tasks();
     }
 }
 

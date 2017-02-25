@@ -5,7 +5,7 @@
     Microchip Technology Inc.
 
   File Name:
-    tx_thread.h
+    uart_thread.h
 
   Summary:
     This header file provides prototypes and definitions for the application.
@@ -43,8 +43,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
  *******************************************************************************/
 //DOM-IGNORE-END
 
-#ifndef _TX_THREAD_H
-#define _TX_THREAD_H
+#ifndef _UART_THREAD_H
+#define _UART_THREAD_H
 
 // *****************************************************************************
 // *****************************************************************************
@@ -58,7 +58,6 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include <stdlib.h>
 #include "system_config.h"
 #include "system_definitions.h"
-#include "messages.h"
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility
@@ -68,20 +67,10 @@ extern "C" {
 #endif
 // DOM-IGNORE-END
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Type Definitions
-// *****************************************************************************
-// *****************************************************************************
 
-typedef struct {
-    char Destination;
-    char MsgCount;
-    char Data[SIZE];
-} Tx_DataType;
 /*******************************************************************************
   Function:
-    void TX_THREAD_Initialize ( void )
+    void UART_THREAD_Initialize ( void )
 
   Summary:
      MPLAB Harmony application initialization routine.
@@ -103,19 +92,19 @@ typedef struct {
 
   Example:
     <code>
-    TX_THREAD_Initialize();
+    UART_THREAD_Initialize();
     </code>
 
   Remarks:
     This routine must be called from the SYS_Initialize function.
 */
 
-void TX_THREAD_Initialize ( void );
+void UART_THREAD_Initialize ( void );
 
 
 /*******************************************************************************
   Function:
-    void TX_THREAD_Tasks ( void )
+    void UART_THREAD_Tasks ( void )
 
   Summary:
     MPLAB Harmony Demo application tasks function
@@ -136,20 +125,23 @@ void TX_THREAD_Initialize ( void );
 
   Example:
     <code>
-    TX_THREAD_Tasks();
+    UART_THREAD_Tasks();
     </code>
 
   Remarks:
     This routine must be called from SYS_Tasks() routine.
  */
 
-void TX_THREAD_Tasks( void );
 
-void TX_THREAD_InitializeQueue();
 
-void TX_THREAD_ReadFromQueue(Tx_DataType pvBuffer[]);
+void UART_THREAD_Tasks( void );
 
-#endif /* _TX_THREAD_H */
+int UART_THREAD_ReadFromQueue(char* pvBuffer);
+
+void UART_THREAD_InitializeQueue();
+
+
+#endif /* _UART_THREAD_H */
 
 //DOM-IGNORE-BEGIN
 #ifdef __cplusplus

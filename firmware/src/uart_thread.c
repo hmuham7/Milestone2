@@ -5,7 +5,7 @@
     Microchip Technology Inc.
 
   File Name:
-    rx_thread.c
+    uart.c
 
   Summary:
     This file contains the source code for the MPLAB Harmony application.
@@ -53,8 +53,6 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 // *****************************************************************************
 
-#include "rx_thread.h"
-#include "rx_thread_public.h"
 #include "debug.h"
 #include "messages.h"
 #include "message_thread.h"
@@ -63,42 +61,44 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include <stdbool.h>
 
 
-QueueHandle_t rx_queue;
+QueueHandle_t uart_queue;
 
 #define QUEUE_TYPE              char
 #define QUEUE_SIZE              4096
 
 /*******************************************************************************
   Function:
-    void RX_THREAD_Initialize ( void )
+    void UART_THREAD_Initialize ( void )
 
   Remarks:
-    See prototype in rx_thread.h.
+    See prototype in uart_thread.h.
  */
 
-void RX_THREAD_Initialize ( void )
+void UART_THREAD_Initialize ( void )
 {
-    RX_THREAD_InitializeQueue();
+    UART_THREAD_InitializeQueue();
     SYS_INT_SourceEnable(INT_SOURCE_USART_1_RECEIVE);
 }
 
-void RX_THREAD_InitializeQueue() {
-    rx_queue = xQueueCreate(QUEUE_SIZE, sizeof(QUEUE_TYPE));
-    if(rx_queue == 0) {
+void UART_THREAD_InitializeQueue() {
+    uart_queue = xQueueCreate(QUEUE_SIZE, sizeof(QUEUE_TYPE));
+    if(uart_queue == 0) {
         dbgOutputBlock(pdFALSE);
     }
 }
 
 /******************************************************************************
   Function:
-    void RX_THREAD_Tasks ( void )
+    void UART_THREAD_Tasks ( void )
 
   Remarks:
-    See prototype in rx_thread.h.
+    See prototype in uart_thread.h.
  */
 
-void RX_THREAD_Tasks ( void )
+void UART_THREAD_Tasks ( void )
 {
+    dbgPinsDirection();
+    dbgOutputVal(0x04);
     MsgObj obj;
     obj.Type = SEND_RESPONSE;
     dbgPinsDirection();
@@ -106,7 +106,7 @@ void RX_THREAD_Tasks ( void )
     char c;
     while(1){
         
-        RX_THREAD_ReadFromQueue(&c);
+        UART_THREAD_ReadFromQueue(&c);
         
         bool no_error = messageparser(c, obj.External.Data, &obj.External.Source, &obj.External.MsgCount, &obj.External.Error);
         dbgOutputVal(no_error);
@@ -120,18 +120,19 @@ void RX_THREAD_Tasks ( void )
     }
 }
 
-void RX_THREAD_ReadFromQueue(void* pvBuffer) {
-    xQueueReceive(rx_queue, pvBuffer, portMAX_DELAY);
+int UART_THREAD_ReadFromQueue(char* pvBuffer) {
+    int ret = xQueueReceive(uart_queue, pvBuffer, portMAX_DELAY);
+    return ret;
 }
 
-void RX_THREAD_SendToQueue(char buffer) {
-    xQueueSendToBack(rx_queue, &buffer, portMAX_DELAY);
+void UART_THREAD_SendToQueue(char buffer) {
+    xQueueSendToBack(uart_queue, &buffer, portMAX_DELAY);
 }
 
-void RX_THREAD_SendToQueueISR(char buffer, BaseType_t *pxHigherPriorityTaskWoken) {
-    xQueueSendToBackFromISR(rx_queue, &buffer, pxHigherPriorityTaskWoken);
+void UART_THREAD_SendToQueueISR(char buffer, BaseType_t *pxHigherPriorityTaskWoken) {
+    xQueueSendToBackFromISR(uart_queue, &buffer, pxHigherPriorityTaskWoken);
+    
 }
-
 
 /*******************************************************************************
  End of File
