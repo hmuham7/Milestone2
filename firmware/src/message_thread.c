@@ -79,9 +79,15 @@ void MESSAGE_THREAD_InitializeQueue() {
 void MESSAGE_THREAD_Initialize ( void )
 {
     MESSAGE_THREAD_InitializeQueue();
-    resetSystemClock();
+    
     dbgPinsDirection();
-    dbgOutputVal(0x07);
+    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_TIMER_2);
+    DRV_TMR0_Start();
+    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_TIMER_4);
+    DRV_TMR1_Start();
+    
+    resetSystemClock();
+    
 }
 
 
@@ -104,13 +110,9 @@ void MESSAGE_THREAD_Tasks ( void )
     type_t type = strange;
     items_t items[12];
     int numItems;
-    dbgPinsDirection();
-    dbgOutputVal(0x03);
     
-    DRV_TMR0_Start();
-    DRV_TMR1_Start();
-    dbgPinsDirection();
     dbgOutputVal(0x05);
+    
     while(1) {
         
         initialize_parser();

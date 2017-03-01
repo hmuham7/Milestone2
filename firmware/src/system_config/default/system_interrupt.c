@@ -76,8 +76,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
     
 void IntHandlerDrvTmrInstance0(void)
 {
-    dbgPinsDirection();
-    dbgOutputVal(0x03);
+    dbgOutputVal(0x94);
     PLIB_USART_TransmitterEnable (USART_ID_1);
     PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
     PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_2);
@@ -115,64 +114,36 @@ void IntHandlerDrvTmrInstance1(void)
 }
  void IntHandlerDrvUsartInstance0(void)
 {
-     /*
     BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
     
-    // Receive Code
-    if (SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_RECEIVE) && !DRV_USART0_ReceiverBufferIsEmpty())
+    // Transmit code
+    if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_TRANSMIT))
     {
-        RX_THREAD_SendToQueueISR(DRV_USART0_ReadByte(), &pxHigherPriorityTaskWoken); // read received byte
-    }
-    */ 
-    ////////////////////////////////////////////////////////////////////////////////
-     
-     
-    if(PLIB_INT_SourceFlagGet(INT_ID_0, INT_SOURCE_USART_1_RECEIVE))
-    {
-        /* Make sure receive buffer has data availible */
-        if (PLIB_USART_ReceiverDataIsAvailable(USART_ID_1))
-        {
-            /* Get the data from the buffer */
-            UART_THREAD_SendToQueueISR(PLIB_USART_ReceiverByteReceive(USART_ID_1));
-		}
-    PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_USART_1_RECEIVE);
-    }
-    // Transmission Code
-    //////////////////////////////////////////////////////////////////////////////////////////
-    if(PLIB_INT_SourceFlagGet(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT))
-    {
-        PLIB_USART_TransmitterByteSend(USART_ID_1, 'c');
-        if (PLIB_USART_TransmitterIsEmpty (USART_ID_1))
+        
+        SYS_INT_SourceDisable(INT_SOURCE_USART_1_TRANSMIT);
+        while (!PLIB_USART_TransmitterBufferIsFull(USART_ID_1)
+                && !uart_queue_empty())
         {
             char buf;
-            if(UART_THREAD_ReadFromQueue(&buf)) 
+//            int i = UART_THREAD_ReadFromQueue(&buf);
+            int i = UART_THREAD_ReadFromQueueFromISR(&buf, &pxHigherPriorityTaskWoken);
+            if (i)
             {
                 PLIB_USART_TransmitterByteSend(USART_ID_1, buf);
             }
-            
-            PLIB_USART_TransmitterByteSend(USART_ID_1, 'b');
         }
-        PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
-//        PLIB_USART_TransmitterDisable (USART_ID_1);
-    }
-    /////////////////////////////////////////////////////////////////////////////////////////
-    /*
-    if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_TRANSMIT) && !(DRV_USART_TRANSFER_STATUS_TRANSMIT_FULL & DRV_USART0_TransferStatus()) )
-    {
-        char buf;
-        if(Uart_ReadFromQueue(&buf, &pxHigherPriorityTaskWoken)) {
-            DRV_USART0_WriteByte(buf);
-        }
-        else {
-            SYS_INT_SourceDisable(INT_SOURCE_USART_1_TRANSMIT);
-        }
+        if(!uart_queue_empty())
+            SYS_INT_SourceEnable(INT_SOURCE_USART_1_TRANSMIT);
+        SYS_INT_SourceStatusClear(INT_SOURCE_USART_1_TRANSMIT);
     }
     
-    DRV_USART_TasksTransmit(sysObj.drvUsart0);
-    DRV_USART_TasksReceive(sysObj.drvUsart0);
-    DRV_USART_TasksError(sysObj.drvUsart0);
+    // Receive Code
+    if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_RECEIVE))
+    {
+        uart_wifly_receive(pxHigherPriorityTaskWoken);
+        SYS_INT_SourceStatusClear(INT_SOURCE_USART_1_RECEIVE);
+    }
     portEND_SWITCHING_ISR(pxHigherPriorityTaskWoken);
-    */
 } 
 /*******************************************************************************
  End of File

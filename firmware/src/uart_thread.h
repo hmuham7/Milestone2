@@ -136,10 +136,23 @@ void UART_THREAD_Initialize ( void );
 
 void UART_THREAD_Tasks( void );
 
-int UART_THREAD_ReadFromQueue(char* pvBuffer);
-
 void UART_THREAD_InitializeQueue();
 
+void uart_wifly_init();
+
+bool uart_queue_empty();
+
+void send_uart_byte(uint8_t numBytes, uint8_t *bytes, BaseType_t pxHigherPriorityTaskWoken);
+
+void uart_wifly_receive(BaseType_t pxHigherPriorityTaskWoken);
+
+void UART_THREAD_SendToQueue(char buffer);
+
+void UART_THREAD_SendToQueueISR(char buffer, BaseType_t *pxHigherPriorityTaskWoken);
+
+int UART_THREAD_ReadFromQueue(char* pvBuffer);
+
+int UART_THREAD_ReadFromQueueFromISR(char* pvBuffer, BaseType_t *pxHigherPriorityTaskWoken);
 
 #endif /* _UART_THREAD_H */
 

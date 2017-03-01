@@ -87,6 +87,8 @@ void dbgUARTVal( unsigned char outVal);
 
 void dbgPinsDirection();
 
+void debug_init();
+
 void dbgOutputBlock(int outVal);
 
 void dbgOutputBlockISR(int outVal);

@@ -63,8 +63,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 QueueHandle_t uart_queue;
 
-#define QUEUE_TYPE              char
-#define QUEUE_SIZE              4096
+#define QUEUE_TYPE char
+#define QUEUE_SIZE 4096
 
 /*******************************************************************************
   Function:
@@ -98,10 +98,10 @@ void UART_THREAD_InitializeQueue() {
 void UART_THREAD_Tasks ( void )
 {
     dbgPinsDirection();
+    uart_wifly_init();
     dbgOutputVal(0x04);
     MsgObj obj;
     obj.Type = SEND_RESPONSE;
-    dbgPinsDirection();
     dbgOutputVal(0x03);
     char c;
     while(1){
@@ -120,18 +120,63 @@ void UART_THREAD_Tasks ( void )
     }
 }
 
+void UART_THREAD_SendToQueue(char buffer) {
+    xQueueSend(uart_queue, &buffer, portMAX_DELAY);
+    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
+}
+
+void UART_THREAD_SendToQueueISR(char buffer, BaseType_t *pxHigherPriorityTaskWoken) {
+    xQueueSendFromISR(uart_queue, &buffer, pxHigherPriorityTaskWoken);
+}
+
 int UART_THREAD_ReadFromQueue(char* pvBuffer) {
     int ret = xQueueReceive(uart_queue, pvBuffer, portMAX_DELAY);
     return ret;
 }
 
-void UART_THREAD_SendToQueue(char buffer) {
-    xQueueSendToBack(uart_queue, &buffer, portMAX_DELAY);
+int UART_THREAD_ReadFromQueueFromISR(char* pvBuffer, BaseType_t *pxHigherPriorityTaskWoken) {
+    int ret = xQueueReceiveFromISR(uart_queue, pvBuffer, pxHigherPriorityTaskWoken);
+    return ret;
 }
 
-void UART_THREAD_SendToQueueISR(char buffer, BaseType_t *pxHigherPriorityTaskWoken) {
-    xQueueSendToBackFromISR(uart_queue, &buffer, pxHigherPriorityTaskWoken);
+/////////////////////////////////////////////////////////////////
+bool uart_queue_empty()
+{
+    return xQueueIsQueueEmptyFromISR(uart_queue);
+}
+
+void uart_wifly_init()
+{
+    DRV_USART0_Open( DRV_USART_INDEX_1, 
+        (DRV_IO_INTENT_READWRITE | DRV_IO_INTENT_BLOCKING) );
+    SYS_INT_SourceDisable(INT_SOURCE_USART_1_ERROR);
+}
+
+void uart_wifly_receive(BaseType_t pxHigherPriorityTaskWoken)
+{
+    while(PLIB_USART_ReceiverDataIsAvailable(USART_ID_1)){
+        uint8_t buff[8] = {0};
+        int i = 0;
+        while(PLIB_USART_ReceiverDataIsAvailable(USART_ID_1) && (i < 8)){
+            buff[i] = PLIB_USART_ReceiverByteReceive(USART_ID_1);
+            i++;
+        }
+        send_uart_byte(i, &buff[0], pxHigherPriorityTaskWoken);
+    }
+}
+
+void send_uart_byte(uint8_t numBytes, uint8_t *bytes, BaseType_t pxHigherPriorityTaskWoken)
+{
+    uint8_t buff[10] = {0};
+    buff[0] = 'u';
+    buff[1] = numBytes;
     
+    int i;
+    for(i = 0; i < numBytes; i++){
+        buff[i+2] = bytes[i];
+    }
+    
+    UART_THREAD_SendToQueueISR(buff[0], &pxHigherPriorityTaskWoken);
 }
 
 /*******************************************************************************

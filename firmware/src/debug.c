@@ -138,6 +138,12 @@ void dbgPinsDirection()
     PLIB_PORTS_DirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_E, 0x00FF);
 }
 
+void debug_init()
+{
+    DRV_USART0_Open(DRV_USART_INDEX_0, 
+            (DRV_IO_INTENT_WRITE | DRV_IO_INTENT_BLOCKING));
+}
+
 void dbgOutputBlock(int outVal) {
     if(!outVal) {
         dbgOutputLoc(0xff);
