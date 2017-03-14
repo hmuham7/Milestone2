@@ -61,11 +61,10 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 #include <xc.h>
 #include <sys/attribs.h>
-#include "motor_thread.h"
-#include "control_thread.h"
+#include "debug.h"
+#include "uart_thread.h"
 #include "message_thread.h"
 #include "system_definitions.h"
-#include "debug.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -76,75 +75,98 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
     
 void IntHandlerDrvTmrInstance0(void)
 {
-    dbgOutputVal(0x94);
-    PLIB_USART_TransmitterEnable (USART_ID_1);
-    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
-    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_2);
-}
-    
-void IntHandlerDrvTmrInstance1(void)
-{
     BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
-    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_4);
-    MsgObj obj;
-    obj.Type = SEND_REQUEST;
-    dbgPinsDirection();
-    dbgOutputVal(0x03);
-    switch(MYROVER){
-        case SENSOR_ROVER:
-            break;
-        case FLAG_ROVER:
-            obj.Request = FRtoSR;
-            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
-            break;
-        case TAG_ROVER:
-            obj.Request = TRtoSR;
-            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
-            break;
-        case CM_ROVER:
-            obj.Request = CMRtoSR;
-            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
-            break;
-    }
     
-    incrementSystemClock();
+    dbgOutputLoc(ENTER_TIMER_ISR0);
+    dbgOutputLoc(0x29);
+//    MsgObj obj;
+//    obj.Type = SEND_REQUEST;
+//    
+//    switch(MYROVER){
+//        dbgOutputLoc(ENTER_TIMER_IR0_SWITCH_CASE);
+//        case FLAG_ROVER:
+//            obj.Request = FRtoSR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = FRtoTR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = FRtoCMR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            break;
+//        case TAG_ROVER:
+//            obj.Request = TRtoSR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = TRtoFR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = TRtoCMR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            break;
+//        case CM_ROVER:
+//            obj.Request = CMRtoSR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = CMRtoTR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = CMRtoFR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            break;
+//        case SENSOR_ROVER:
+//            obj.Request = SRtoTR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = SRtoFR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            obj.Request = SRtoCMR;
+//            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+//            break;
+//    }
+    
+    addLocalTime();
     
     portEND_SWITCHING_ISR(pxHigherPriorityTaskWoken);
-    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_4);
+    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_2);
 }
- void IntHandlerDrvUsartInstance0(void)
+
+void IntHandlerDrvUsartInstance0(void)
 {
+    dbgOutputLoc(ENTER_UART_ISR);
     BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
     
-    // Transmit code
-    if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_TRANSMIT))
+    ///////////////////// Receive Code //////////////////////////////////////////////////
+    if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_RECEIVE) && !DRV_USART0_ReceiverBufferIsEmpty())
     {
+        uart_wifly_receive(pxHigherPriorityTaskWoken);
+        SYS_INT_SourceStatusClear(INT_SOURCE_USART_1_RECEIVE);
+    }
+    
+    ////////////////////////// Transmit code //////////////////////////////////////////////
+    if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_TRANSMIT) && !(DRV_USART_TRANSFER_STATUS_TRANSMIT_FULL & DRV_USART0_TransferStatus())) 
+    {
+        dbgOutputLoc(ENTER_UART_TX_IF);
         
         SYS_INT_SourceDisable(INT_SOURCE_USART_1_TRANSMIT);
         while (!PLIB_USART_TransmitterBufferIsFull(USART_ID_1)
                 && !uart_queue_empty())
         {
-            char buf;
-//            int i = UART_THREAD_ReadFromQueue(&buf);
-            int i = UART_THREAD_ReadFromQueueFromISR(&buf, &pxHigherPriorityTaskWoken);
-            if (i)
-            {
-                PLIB_USART_TransmitterByteSend(USART_ID_1, buf);
-            }
+            dbgOutputLoc(ENTER_UART_TX_WHILE);
+            dbgOutputLoc(BEFORE_RECEIVE_ISR);
+            
+            char byte = UART_THREAD_ReadFromQueueFromISR(pxHigherPriorityTaskWoken);
+            
+            dbgOutputLoc(AFTER_RECEIVE_ISR);
+            dbgOutputLoc(BEFORE_SEND_TX_BYTE);
+            
+            PLIB_USART_TransmitterByteSend(USART_ID_1, byte);
+            
+            dbgOutputLoc(AFTER_SEND_TX_BYTE);
         }
         if(!uart_queue_empty())
             SYS_INT_SourceEnable(INT_SOURCE_USART_1_TRANSMIT);
         SYS_INT_SourceStatusClear(INT_SOURCE_USART_1_TRANSMIT);
     }
-    
-    // Receive Code
-    if(SYS_INT_SourceStatusGet(INT_SOURCE_USART_1_RECEIVE))
-    {
-        uart_wifly_receive(pxHigherPriorityTaskWoken);
-        SYS_INT_SourceStatusClear(INT_SOURCE_USART_1_RECEIVE);
-    }
+
+    DRV_USART_TasksReceive(sysObj.drvUsart0);
+    DRV_USART_TasksError(sysObj.drvUsart0);
     portEND_SWITCHING_ISR(pxHigherPriorityTaskWoken);
-} 
+    dbgOutputLoc(LEAVE_UART_ISR);
+}
 /*******************************************************************************
  End of File
 */

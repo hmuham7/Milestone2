@@ -265,4 +265,5 @@ build/default/production/_ext/1360937237/messages.o:  \
 ../src/uart_thread.h  \
  ../src/message_thread.h  \
 ../src/jsmn.h  \
-../src/json_parser.h 
+../src/json_parser.h  \
+ ../src/message_thread.h 

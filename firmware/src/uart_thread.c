@@ -54,18 +54,23 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 
 #include "debug.h"
-#include "messages.h"
-#include "message_thread.h"
-
-
+//#include "app.h"
 #include <stdbool.h>
+#include "message_thread.h"
 
 
 QueueHandle_t uart_queue;
 
-#define QUEUE_TYPE char
-#define QUEUE_SIZE 4096
+#define QUEUE_TYPE              char
+#define QUEUE_SIZE              1024
 
+
+void UART_THREAD_InitializeQueue() {
+    uart_queue = xQueueCreate(QUEUE_SIZE, sizeof(QUEUE_TYPE));
+    if(uart_queue == 0) {
+        //dbgOutputBlock(pdFALSE);
+    }
+}
 /*******************************************************************************
   Function:
     void UART_THREAD_Initialize ( void )
@@ -77,15 +82,10 @@ QueueHandle_t uart_queue;
 void UART_THREAD_Initialize ( void )
 {
     UART_THREAD_InitializeQueue();
-    SYS_INT_SourceEnable(INT_SOURCE_USART_1_RECEIVE);
+    dbgOutputLoc(ENTER_UART_THREAD_INITIALIZER);
 }
 
-void UART_THREAD_InitializeQueue() {
-    uart_queue = xQueueCreate(QUEUE_SIZE, sizeof(QUEUE_TYPE));
-    if(uart_queue == 0) {
-        dbgOutputBlock(pdFALSE);
-    }
-}
+
 
 /******************************************************************************
   Function:
@@ -97,36 +97,12 @@ void UART_THREAD_InitializeQueue() {
 
 void UART_THREAD_Tasks ( void )
 {
-    dbgPinsDirection();
+    dbgOutputLoc(ENTER_UART_THREAD_TASKS);
     uart_wifly_init();
-    dbgOutputVal(0x04);
-    MsgObj obj;
-    obj.Type = SEND_RESPONSE;
-    dbgOutputVal(0x03);
-    char c;
+    
     while(1){
-        
-        UART_THREAD_ReadFromQueue(&c);
-        
-        bool no_error = messageparser(c, obj.External.Data, &obj.External.Source, &obj.External.MsgCount, &obj.External.Error);
-        dbgOutputVal(no_error);
-        
-        if(no_error) {
-            MESSAGE_THREAD_SendToQueue(obj);
-        }
-        else if(obj.External.Error) {
-            MESSAGE_THREAD_SendToQueue(obj);
-        }
+        dbgOutputLoc(0x88);
     }
-}
-
-void UART_THREAD_SendToQueue(char buffer) {
-    xQueueSend(uart_queue, &buffer, portMAX_DELAY);
-    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
-}
-
-void UART_THREAD_SendToQueueISR(char buffer, BaseType_t *pxHigherPriorityTaskWoken) {
-    xQueueSendFromISR(uart_queue, &buffer, pxHigherPriorityTaskWoken);
 }
 
 int UART_THREAD_ReadFromQueue(char* pvBuffer) {
@@ -134,12 +110,18 @@ int UART_THREAD_ReadFromQueue(char* pvBuffer) {
     return ret;
 }
 
-int UART_THREAD_ReadFromQueueFromISR(char* pvBuffer, BaseType_t *pxHigherPriorityTaskWoken) {
-    int ret = xQueueReceiveFromISR(uart_queue, pvBuffer, pxHigherPriorityTaskWoken);
-    return ret;
+void UART_THREAD_SendToQueue(char buffer) {
+    xQueueSendToBack(uart_queue, &buffer, portMAX_DELAY);
+    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
 }
 
-/////////////////////////////////////////////////////////////////
+char UART_THREAD_ReadFromQueueFromISR( BaseType_t pxHigherPriorityTaskWoken) {
+    char buff;
+    xQueueReceiveFromISR(uart_queue, &buff, &pxHigherPriorityTaskWoken);
+    return buff;
+}
+
+/////////////////////////////
 bool uart_queue_empty()
 {
     return xQueueIsQueueEmptyFromISR(uart_queue);
@@ -154,29 +136,22 @@ void uart_wifly_init()
 
 void uart_wifly_receive(BaseType_t pxHigherPriorityTaskWoken)
 {
+    MsgObj obj;
+    bool no_error;
+    char value;
+    obj.Type = SEND_RESPONSE;
     while(PLIB_USART_ReceiverDataIsAvailable(USART_ID_1)){
-        uint8_t buff[8] = {0};
-        int i = 0;
-        while(PLIB_USART_ReceiverDataIsAvailable(USART_ID_1) && (i < 8)){
-            buff[i] = PLIB_USART_ReceiverByteReceive(USART_ID_1);
-            i++;
+        value = PLIB_USART_ReceiverByteReceive(USART_ID_1);
+        no_error = messageparser(value, obj.External.Data, &obj.External.Source, &obj.External.MsgCount, &obj.External.Error, &obj.External.MessagesDropped);
+        dbgOutputVal(0x99);
+        if(no_error) {
+            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
         }
-        send_uart_byte(i, &buff[0], pxHigherPriorityTaskWoken);
-    }
-}
-
-void send_uart_byte(uint8_t numBytes, uint8_t *bytes, BaseType_t pxHigherPriorityTaskWoken)
-{
-    uint8_t buff[10] = {0};
-    buff[0] = 'u';
-    buff[1] = numBytes;
-    
-    int i;
-    for(i = 0; i < numBytes; i++){
-        buff[i+2] = bytes[i];
+        else if(obj.External.Error) {
+            MESSAGE_THREAD_SendToQueueISR(obj, &pxHigherPriorityTaskWoken);
+        }
     }
     
-    UART_THREAD_SendToQueueISR(buff[0], &pxHigherPriorityTaskWoken);
 }
 
 /*******************************************************************************

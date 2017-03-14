@@ -54,15 +54,14 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 
 #include "message_thread.h"
-#include "message_thread_public.h"
 #include "json_parser.h"
 #include "messages.h"
 
-QueueHandle_t _queue;
-static int systemClock;
+QueueHandle_t message_queue;
+static int LocalTime;
 
 #define QUEUE_TYPE             MsgObj
-#define QUEUE_SIZE             500
+#define QUEUE_SIZE             100
 
 /*******************************************************************************
   Function:
@@ -73,21 +72,19 @@ static int systemClock;
  */
 
 void MESSAGE_THREAD_InitializeQueue() {
-    _queue = xQueueCreate(QUEUE_SIZE, sizeof(QUEUE_TYPE));
+    message_queue = xQueueCreate(QUEUE_SIZE, sizeof(QUEUE_TYPE));
+    if(message_queue == 0) {
+        //dbgOutputBlock(pdFALSE);
+    }
 }
 
 void MESSAGE_THREAD_Initialize ( void )
 {
+    dbgOutputLoc(ENTER_MESSAGE_THREAD_INITIALIZER);
+    dbgOutputLoc(0x19);
+    
     MESSAGE_THREAD_InitializeQueue();
-    
-    dbgPinsDirection();
-    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_TIMER_2);
-    DRV_TMR0_Start();
-    PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_TIMER_4);
-    DRV_TMR1_Start();
-    
-    resetSystemClock();
-    
+    //resetLocalTime();
 }
 
 
@@ -101,21 +98,44 @@ void MESSAGE_THREAD_Initialize ( void )
 
 void MESSAGE_THREAD_Tasks ( void )
 {
-    InternalData internalData;
-    memset(&internalData, 0, sizeof(InternalData));
+    dbgOutputLoc(ENTER_MESSAGE_THREAD_TASKS);
+    
+    DRV_TMR0_Start(); // timer start for 100ms Interrupt driven Request Generation
+    resetLocalTime();
+    
+    RoverData rData;
+    memset(&rData, 0, sizeof(RoverData));
     
     StatObjectType statObject;
     memset(&statObject, 0, sizeof(StatObjectType));
     
+    statObject.Request_To_CMrover           = 0;
+    statObject.Request_To_Flagrover         = 0;
+    statObject.Request_To_Sensorrover       = 0;
+    statObject.Request_To_Tagrover          = 0;
+    statObject.Request_From_CMrover         = 0;
+    statObject.Request_From_Flagrover       = 0;
+    statObject.Request_From_Sensorrover     = 0;
+    statObject.Request_From_Tagrover        = 0;
+    statObject.Request_From_Server          = 0;
+    statObject.Response_To_CMrover          = 0;
+    statObject.Response_To_Flagrover        = 0;
+    statObject.Response_To_Sensorrover      = 0;
+    statObject.Response_To_Tagrover         = 0;
+    statObject.Response_From_CMrover        = 0;
+    statObject.Response_From_Flagrover      = 0;
+    statObject.Response_From_Sensorrover    = 0;
+    statObject.Response_From_Tagrover       = 0;
+    
+    statObject.GoodCount = 0x00;
+    statObject.ErrorCount = 0x00;
+    
     type_t type = strange;
     items_t items[12];
     int numItems;
-    
-    dbgOutputVal(0x05);
-    
     while(1) {
         
-        initialize_parser();
+        dbgOutputLoc(ENTER_MESSAGE_THREAD_WHILE);
         MsgObj obj;
         memset(&obj, 0, sizeof(MsgObj));
 
@@ -126,7 +146,7 @@ void MESSAGE_THREAD_Tasks ( void )
         
         switch(obj.Type) {
             case SEND_RESPONSE: {
-                
+                dbgOutputLoc(0x98);
                 if(obj.External.Error) {
                     statObject.ErrorCount++;
                     continue;
@@ -140,38 +160,24 @@ void MESSAGE_THREAD_Tasks ( void )
                     case request: {
                         switch(obj.External.Source) {
                             case SENSOR_ROVER:
-                                if ((obj.External.MsgCount - statObject.Req_From_Sensorrover) < 0) {
-                                    statObject.MessagesDropped = (256 - statObject.Req_From_Sensorrover) + obj.External.MsgCount;
-                                } else {
-                                    statObject.MessagesDropped = (obj.External.MsgCount - statObject.Req_From_Sensorrover);
-                                }
-                                statObject.Req_From_Sensorrover++;
+                                statObject.Request_From_Sensorrover++;
+                                statObject.Response_To_Sensorrover++;
                                 break;
                             case FLAG_ROVER:
-                                if ((obj.External.MsgCount - statObject.Req_From_Flagrover) < 0) {
-                                    statObject.MessagesDropped = (256 - statObject.Req_From_Flagrover) + obj.External.MsgCount;
-                                } else {
-                                    statObject.MessagesDropped = (obj.External.MsgCount - statObject.Req_From_Flagrover);
-                                }
-                                statObject.Req_From_Flagrover++;
+                                statObject.Request_From_Flagrover++;
+                                statObject.Response_To_Flagrover++;
                                 break;
                             case TAG_ROVER:
-                                if ((obj.External.MsgCount - statObject.Req_From_Tagrover) < 0) {
-                                    statObject.MessagesDropped = (256 - statObject.Req_From_Tagrover) + obj.External.MsgCount;
-                                } else {
-                                    statObject.MessagesDropped = (obj.External.MsgCount - statObject.Req_From_Tagrover);
-                                }
-                                statObject.Req_From_Tagrover++;
+                                statObject.Request_From_Tagrover++;
+                                statObject.Response_To_Tagrover++;
                                 break;
                             case CM_ROVER:
-                                if ((obj.External.MsgCount - statObject.Req_From_CMrover) < 0) {
-                                    statObject.MessagesDropped = (256 - statObject.Req_From_CMrover) + obj.External.MsgCount;
-                                } else {
-                                    statObject.MessagesDropped = (obj.External.MsgCount - statObject.Req_From_CMrover);
-                                }
-                                statObject.Req_From_CMrover++;
+                                statObject.Request_From_CMrover++;
+                                statObject.Response_To_CMrover++;
                                 break;
                             case SERVER:
+                                statObject.Request_From_Server++;
+                                statObject.Response_To_Server++;
                                 break;
                             default:
                                 continue;
@@ -180,38 +186,42 @@ void MESSAGE_THREAD_Tasks ( void )
                         int i = 0;
                         tx_obj.Destination = obj.External.Source;
                         sprintf(tx_obj.Data, "{\"type\":\"Response\"");
+                        
+                        unsigned int JSONReqRcv     = statObject.Request_From_Sensorrover + statObject.Request_From_Flagrover + statObject.Request_From_Tagrover + statObject.Request_From_CMrover + statObject.Request_From_Server;
+                        unsigned int JSONResRcv     = statObject.Response_From_Sensorrover + statObject.Response_From_Flagrover + statObject.Response_From_Tagrover + statObject.Response_From_CMrover + statObject.Response_From_Server;
+                        unsigned int JSONReqSent    = statObject.Request_To_Sensorrover + statObject.Request_To_Flagrover + statObject.Request_To_Tagrover + statObject.Request_To_CMrover + statObject.Request_To_Server;
+                        unsigned int JSONResSent    = statObject.Response_To_Sensorrover + statObject.Response_To_Flagrover + statObject.Response_To_Tagrover + statObject.Response_To_CMrover + statObject.Response_To_Server;
+                        
                         for(i = 0; i < numItems; i++) {
                             switch(items[i]) {
                                 case CommStats_flag_rover: case CommStats_sensor_rover: case CommStats_tag_rover: case CommStats_cm_rover: {
                                     sprintf(tx_obj.Data+strlen(tx_obj.Data), 
-                                        ",\"CommStats%s\":{"
-                                        "\"myName\":\"%s\","
-                                        "\"numGoodMessagesRecved\":\"%d\","
-                                        "\"numCommErrors\":\"%d\","
-                                        "\"numMessagesDropped\":\"%d\","    
-                                        "\"numJSONRequestsRecved\":\"%d\","
-                                        "\"numJSONResponsesRecved\":\"%d\","
-                                        "\"numJSONRequestsSent\":\"%d\","
-                                        "\"numJSONResponsesSent\":\"%d\"}",
+                                        ",\"CommStats\":{"
+                                        "\"Name\":\"%s\","
+                                        "\"#GoodMsgs\":\"%d\","
+                                        "\"#MsgsDropd\":\"%d\","
+                                        //"\"#MsgsDrop\":\"%d\","    
+                                        "\"#JReqRcv\":\"%d\","
+                                        "\"#JResRcv\":\"%d\","
+                                        "\"#JReqSent\":\"%d\","
+                                        "\"#JResSent\":\"%d\"}",
                                         ROVER_NAME,
                                         statObject.GoodCount,
                                         statObject.ErrorCount,
-                                        statObject.MessagesDropped,
-                                        statObject.Req_From_Sensorrover + statObject.Req_From_Flagrover + statObject.Req_From_Tagrover + statObject.Req_From_CMrover,
-                                        statObject.Res_From_Sensorrover + statObject.Res_From_Flagrover + statObject.Res_From_Tagrover + statObject.Res_From_CMrover,
-                                        statObject.Req_To_Sensorrover + statObject.Req_To_Flagrover + statObject.Req_To_Tagrover + statObject.Req_To_CMrover,
-                                        statObject.Res_To_Sensorrover + statObject.Res_To_Flagrover + statObject.Res_To_Tagrover + statObject.Res_To_CMrover
+                                        //obj.External.MessagesDropped - statObject.GoodCount + 1,//statObject.MessagesDropped,
+                                        JSONReqRcv,
+                                        JSONResRcv,
+                                        JSONReqSent,
+                                        JSONResSent
                                         );
-                                    tx_obj.Destination = SERVER;
                                     break;
                                 }
-                                case SensorData: {
-                                    sprintf(tx_obj.Data+strlen(tx_obj.Data), ",\"SensorData\":\"%0.02f\"", internalData.sensordata);
-                                    break;
-                                }
+//                                case EncoderData: {
+//                                    sprintf(tx_obj.Data+strlen(tx_obj.Data), ",\"SensorData\":\"%0.02f\"", rData.sensordata);
+//                                    break;
+//                                }
                                 case msLocalTime:{
-                                    sprintf(tx_obj.Data+strlen(tx_obj.Data), ",\"msLocalTime\":\"%d\"", getSystemClock() * 10);
-                                    tx_obj.Destination = obj.External.Source;
+                                    sprintf(tx_obj.Data+strlen(tx_obj.Data), ",\"msLocalTime\":\"%d ms\"", getLocalTime() * 100);
                                     break;
                                 }
                                 default:
@@ -219,53 +229,35 @@ void MESSAGE_THREAD_Tasks ( void )
                             }
                         }
                         sprintf(tx_obj.Data+strlen(tx_obj.Data),"}");
-                        switch(obj.External.Source) {
-                            case SENSOR_ROVER: {
-                                tx_obj.MsgCount = statObject.Res_To_Sensorrover;
-                                statObject.Res_To_Sensorrover++;
-                                break;
-                            }
-                            case FLAG_ROVER: {
-                                tx_obj.MsgCount = statObject.Res_To_Flagrover;
-                                statObject.Res_To_Flagrover++;
-                                break;
-                            }
-                            case TAG_ROVER: {
-                                tx_obj.MsgCount = statObject.Res_To_Tagrover;
-                                statObject.Res_To_Tagrover++;
-                                break;
-                            }
-                            case CM_ROVER: {
-                                tx_obj.MsgCount = statObject.Res_To_CMrover;
-                                statObject.Res_To_CMrover++;
-                                break;
-                            }
-                            default: {
-                                break;
-                            }
-                        }
+                        
                         char message[SIZE];
                         int len = messagecreator(message, tx_obj.Data, tx_obj.Destination, tx_obj.MsgCount);
                         int k;
                         for(k = 0; k < len; k++) {
                             UART_THREAD_SendToQueue(message[k]);
                         }
-                        PLIB_USART_TransmitterEnable (USART_ID_1);
-                        PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
                         break;
                     }
                     case response: {
                         switch(obj.External.Source) {
                             case FLAG_ROVER: {
-                                statObject.Res_From_Flagrover++;
+                                statObject.Response_From_Flagrover++;
                                 break;
                             }
                             case TAG_ROVER: {
-                                statObject.Res_From_Tagrover++;
+                                statObject.Response_From_Tagrover++;
                                 break;
                             }
                             case CM_ROVER: {
-                                statObject.Res_From_CMrover++;
+                                statObject.Response_From_CMrover++;
+                                break;
+                            }
+                            case SENSOR_ROVER: {
+                                statObject.Response_From_Sensorrover++;
+                                break;
+                            }
+                            case SERVER: {
+                                statObject.Response_From_Server++;
                                 break;
                             }
                             default: {
@@ -273,6 +265,18 @@ void MESSAGE_THREAD_Tasks ( void )
                             }
                         }
                         break;
+                        
+                        unsigned int ResRcvd = statObject.Response_From_Flagrover + statObject.Response_From_Sensorrover + statObject.Response_From_Tagrover + statObject.Response_From_CMrover + statObject.Response_From_Server;
+                        
+                        tx_obj.Destination = obj.External.Source;
+                        sprintf(tx_obj.Data, "{\"type\":\"UpdatetoResponse\"");
+                        sprintf(tx_obj.Data+strlen(tx_obj.Data),
+                                ",\"CommStats\":{"
+                                "\"Name\":\"%s\","
+                                "\"#ResponsesRcvd\":\"%d\",",
+                                ROVER_NAME,
+                                ResRcvd
+                                );
                     }
                     case strange: {
                         break;
@@ -283,29 +287,94 @@ void MESSAGE_THREAD_Tasks ( void )
                 }
                 break;
             }
-            case SEND_REQUEST: {
+            case SEND_REQUEST: 
+            {
                 switch(obj.Request) {
                     case FRtoSR: {
-                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_sensor_rover\"]}");
                         tx_obj.Destination = SENSOR_ROVER;
-                        tx_obj.MsgCount = statObject.Req_To_Sensorrover;
-                        statObject.Req_To_Sensorrover++;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Sensorrover;
+                        statObject.Request_To_Sensorrover++;
+                        break;
+                    }
+                    case FRtoTR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_tag_rover\"]}");
+                        tx_obj.Destination = TAG_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Tagrover;
+                        statObject.Request_To_Tagrover++;
+                        break;
+                    }
+                    case FRtoCMR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_cm_rover\"]}");
+                        tx_obj.Destination = CM_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_CMrover;
+                        statObject.Request_To_CMrover++;
                         break;
                     }
                     case TRtoSR: {
-                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_sensor_rover\"]}");
                         tx_obj.Destination = SENSOR_ROVER;
-                        tx_obj.MsgCount = statObject.Req_To_Sensorrover;
-                        statObject.Req_To_Sensorrover++;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Sensorrover;
+                        statObject.Request_To_Sensorrover++;
+                        break;
+                    }
+                    case TRtoFR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_flag_rover\"]}");
+                        tx_obj.Destination = FLAG_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Flagrover;
+                        statObject.Request_To_Flagrover++;
+                        break;
+                    }
+                    case TRtoCMR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_cm_rover\"]}");
+                        tx_obj.Destination = CM_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_CMrover;
+                        statObject.Request_To_CMrover++;
                         break;
                     }
                     case CMRtoSR: {
-                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"Obstacles\",\"YOUR_COORDINATES\",\"YOUR_Orientation\"]}");
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_sensor_rover\"]}");
                         tx_obj.Destination = SENSOR_ROVER;
-                        tx_obj.MsgCount = statObject.Req_To_Sensorrover;
-                        statObject.Req_To_Sensorrover++;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Sensorrover;
+                        statObject.Request_To_Sensorrover++;
                         break;
                     }
+                    case CMRtoTR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_tag_rover\"]}");
+                        tx_obj.Destination = TAG_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Tagrover;
+                        statObject.Request_To_Tagrover++;
+                        break;
+                    }
+                    case CMRtoFR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_flag_rover\"]}");
+                        tx_obj.Destination = FLAG_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Flagrover;
+                        statObject.Request_To_Flagrover++;
+                        break;
+                    }
+                    case SRtoFR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_flag_rover\"]}");
+                        tx_obj.Destination = FLAG_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Flagrover;
+                        statObject.Request_To_Flagrover++;
+                        break;
+                    }
+                    case SRtoTR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_tag_rover\"]}");
+                        tx_obj.Destination = TAG_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_Tagrover;
+                        statObject.Request_To_Tagrover++;
+                        break;
+                    }
+                    case SRtoCMR: {
+                        sprintf(tx_obj.Data, "{\"type\":\"Request\",\"items\":[\"msLocalTime\",\"CommStats_cm_rover\"]}");
+                        tx_obj.Destination = CM_ROVER;
+                        tx_obj.MsgCount = (char) statObject.Request_To_CMrover;
+                        statObject.Request_To_CMrover++;
+                        break;
+                    }
+                    
                     default: {
                         continue;
                     }
@@ -315,28 +384,6 @@ void MESSAGE_THREAD_Tasks ( void )
                 int i;
                 for(i = 0; i < len; i++) {
                     UART_THREAD_SendToQueue(message[i]);
-                }
-                PLIB_USART_TransmitterEnable (USART_ID_1);
-                PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
-                break;
-            }
-            case UPDATE: {
-                switch(obj.Update.Type) {
-                    case LOCATION:{
-                        internalData.location = obj.Update.Data.location;
-                        break;
-                    }
-                    case ORIENTATION: {
-                        internalData.orientation = obj.Update.Data.orientation;
-                        break;
-                    }
-                    case SENSORDATA: {
-                        internalData.sensordata = obj.Update.Data.sensordata;
-                        break;
-                    }
-                    default: {
-                        break;
-                    }
                 }
                 break;
             }
@@ -348,27 +395,27 @@ void MESSAGE_THREAD_Tasks ( void )
 }
 
 void MESSAGE_THREAD_ReadFromQueue(MsgObj* pvBuffer) {
-    xQueueReceive(_queue, pvBuffer, portMAX_DELAY);
+    xQueueReceive(message_queue, pvBuffer, portMAX_DELAY);
 }
 
 void MESSAGE_THREAD_SendToQueue(MsgObj buffer) {
-    xQueueSend(_queue, &buffer, portMAX_DELAY);
+    xQueueSend(message_queue, &buffer, portMAX_DELAY);
 }
 
 void MESSAGE_THREAD_SendToQueueISR(MsgObj buffer, BaseType_t *pxHigherPriorityTaskWoken) {
-    xQueueSendFromISR(_queue, &buffer, pxHigherPriorityTaskWoken);
+    xQueueSendToBackFromISR(message_queue, &buffer, pxHigherPriorityTaskWoken);
 }
 
-void resetSystemClock(){
-    systemClock = 0;
+void resetLocalTime(){
+    LocalTime = 0;
 }
 
-void incrementSystemClock(){
-    systemClock++;
+void addLocalTime(){
+    LocalTime++;
 }
 
-int getSystemClock(){
-    return systemClock;
+int getLocalTime(){
+    return LocalTime;
 }
 
 /*******************************************************************************

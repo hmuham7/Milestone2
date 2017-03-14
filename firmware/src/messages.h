@@ -23,23 +23,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define START               0x35
-#define END                 0x42
-#define SIZE                500
+#define START               0x3C
+#define END                 0x3E
+#define SIZE                200
 #define routine_error       0
 
-#define FLAG_ROVER          0x01
-#define SENSOR_ROVER        0x02
-#define TAG_ROVER           0x03
-#define CM_ROVER            0x04
-#define SERVER              0x05
+#define FLAG_ROVER      0x46  //F
+#define SENSOR_ROVER    0x53  //S
+#define TAG_ROVER       0x54  //T
+#define CM_ROVER        0x43  //C
+#define SERVER          0x73  //s
 
-#define MYROVER             FLAG_ROVER
-#define ROVER_NAME          "Flagrover"
+#define MYROVER         FLAG_ROVER
+#define ROVER_NAME      "Flagrover"
+
+bool ParseMessage(char c, char data[], char* source, char* messageCount, bool *err);
 
 int messagecreator(char buf[], char msgData[], char destination, char msgcount);
-
-bool messageparser(char c, char data[], char* source, char* msgCount, bool *fault);
 
 char checksum(char* cs);
 

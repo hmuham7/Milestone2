@@ -61,6 +61,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "messages.h"
 #include "jsmn.h"
 #include "json_parser.h"
+#include "debug.h"
 
 #ifdef __cplusplus  // Provide C++ Compatibility
 
@@ -73,77 +74,73 @@ typedef struct {
     char MsgCount;
     char Data[SIZE];
 } Tx_DataType;
-    
-typedef struct {
-    float x;
-    float y;
-} Coordinates;
 
 typedef struct {
-    Coordinates location;
-    float orientation;
-    float sensordata;
-}InternalData;
+    float encoderdata;
+}RoverData;
 
-typedef enum UpdateType_enum { LOCATION, ORIENTATION, SENSORDATA } UpdateType;
-
-typedef enum InternalRequestType_enum { FRtoSR,
-                                        TRtoSR,
-                                        CMRtoSR
-} InternalRequestType;
+typedef enum RequestType_enum { FRtoSR,
+                                FRtoTR,
+                                FRtoCMR,
+                                TRtoSR,
+                                TRtoFR,
+                                TRtoCMR,
+                                CMRtoSR,
+                                CMRtoTR,
+                                CMRtoFR,
+                                SRtoTR,
+                                SRtoFR,
+                                SRtoCMR
+} RequestType;
 
 //------------------------------------------------------------------------------
 //You should not need to change anything beyond this point
 //------------------------------------------------------------------------------
-typedef enum MsgType_enum {SEND_RESPONSE, SEND_REQUEST, UPDATE} MsgType;
-
-typedef struct {
-    UpdateType Type;
-    InternalData Data;
-} UpdateObj;
+typedef enum MsgType_enum {SEND_RESPONSE, SEND_REQUEST} MsgType;
 
 typedef struct {
     char Source;
     bool Error;
     char Data[SIZE];
     char MsgCount;
+    unsigned int MessagesDropped;
 } ExternalObj;
 
 typedef struct {
     MsgType Type;
-    
     ExternalObj External;
-    
-    InternalRequestType Request;
-    
-    UpdateObj Update;
+    RequestType Request;
 } MsgObj;
 
 typedef struct {
-    
     int32_t MessagesDropped;
     int32_t ErrorCount;
     int32_t GoodCount;
     
-    unsigned char Req_From_Flagrover;
-    unsigned char Req_From_Sensorrover;
-    unsigned char Req_From_Tagrover;
-    unsigned char Req_From_CMrover;
+    unsigned int Request_From_Flagrover;
+    unsigned int Request_To_Flagrover;
+    unsigned int Response_From_Flagrover;
+    unsigned int Response_To_Flagrover;
     
-    unsigned char Req_To_Flagrover;
-    unsigned char Req_To_Sensorrover;
-    unsigned char Req_To_Tagrover;
-    unsigned char Req_To_CMrover;
-
-    unsigned char Res_From_Flagrover;
-    unsigned char Res_From_Sensorrover;
-    unsigned char Res_From_Tagrover;
-    unsigned char Res_From_CMrover;
-
-    unsigned char Res_To_Flagrover;
-    unsigned char Res_To_Sensorrover;
-    unsigned char Res_To_Tagrover;
-    unsigned char Res_To_CMrover;
+    unsigned int Request_From_Sensorrover;
+    unsigned int Request_To_Sensorrover;
+    unsigned int Response_From_Sensorrover;
+    unsigned int Response_To_Sensorrover;
+    
+    unsigned int Request_From_Tagrover;
+    unsigned int Request_To_Tagrover;
+    unsigned int Response_From_Tagrover;
+    unsigned int Response_To_Tagrover;
+    
+    unsigned int Request_From_CMrover;
+    unsigned int Request_To_CMrover;
+    unsigned int Response_From_CMrover;
+    unsigned int Response_To_CMrover;
+    
+    unsigned int Request_From_Server;
+    unsigned int Request_To_Server;
+    unsigned int Response_From_Server;
+    unsigned int Response_To_Server;
 } StatObjectType;
 /*******************************************************************************
   Function:
@@ -215,11 +212,11 @@ void MESSAGE_THREAD_InitializeQueue();
 
 void MESSAGE_THREAD_ReadFromQueue(MsgObj* pvBuffer);
 
-void resetSystemClock();
+void resetLocalTime();
 
-void incrementSystemClock();
+void addLocalTime();
 
-int getSystemClock();
+int getLocalTime();
 
 #endif /* _MESSAGE_CONTROLLER_THREAD_H */
 

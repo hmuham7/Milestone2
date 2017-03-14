@@ -1,6 +1,14 @@
 build/default/production/_ext/1360937237/control_thread.o:  \
  ../src/control_thread.c  \
 ../src/control_thread.h  \
+ ../../../../third_party/rtos/FreeRTOS/Source/include/FreeRTOS.h  \
+ ../src/system_config/default/FreeRTOSConfig.h  \
+ ../../../../third_party/rtos/FreeRTOS/Source/include/projdefs.h  \
+ ../../../../third_party/rtos/FreeRTOS/Source/include/portable.h  \
+ ../../../../third_party/rtos/FreeRTOS/Source/include/deprecated_definitions.h  \
+ ../../../../third_party/rtos/FreeRTOS/Source/portable/MPLAB/PIC32MX/portmacro.h  \
+ ../../../../third_party/rtos/FreeRTOS/Source/include/mpu_wrappers.h  \
+ ../../../../third_party/rtos/FreeRTOS/Source/include/queue.h  \
  ../src/system_config/default/system_config.h  \
  ../src/system_config/default/system_definitions.h  \
  ../../../../framework/system/common/sys_common.h  \
@@ -217,14 +225,6 @@ build/default/production/_ext/1360937237/control_thread.o:  \
  ../../../../framework/osal/osal.h  \
  ../../../../framework/osal/osal_definitions.h  \
  ../../../../framework/osal/src/osal_freertos.h  \
- ../../../../third_party/rtos/FreeRTOS/Source/include/FreeRTOS.h  \
- ../src/system_config/default/FreeRTOSConfig.h  \
- ../../../../third_party/rtos/FreeRTOS/Source/include/projdefs.h  \
- ../../../../third_party/rtos/FreeRTOS/Source/include/portable.h  \
- ../../../../third_party/rtos/FreeRTOS/Source/include/deprecated_definitions.h  \
- ../../../../third_party/rtos/FreeRTOS/Source/portable/MPLAB/PIC32MX/portmacro.h  \
- ../../../../third_party/rtos/FreeRTOS/Source/include/mpu_wrappers.h  \
- ../../../../third_party/rtos/FreeRTOS/Source/include/queue.h  \
  ../../../../third_party/rtos/FreeRTOS/Source/include/semphr.h  \
  ../../../../third_party/rtos/FreeRTOS/Source/include/queue.h  \
  ../../../../third_party/rtos/FreeRTOS/Source/include/task.h  \
@@ -262,7 +262,8 @@ build/default/production/_ext/1360937237/control_thread.o:  \
  ../src/motor_thread.h  \
 ../src/control_thread.h  \
 ../src/uart_thread.h  \
- ../src/message_thread.h  \
+ ../src/debug.h  \
+../src/message_thread.h  \
 ../src/messages.h  \
 ../src/jsmn.h  \
  ../src/json_parser.h 

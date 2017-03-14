@@ -56,8 +56,11 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <FreeRTOS.h>
+#include <queue.h>
 #include "system_config.h"
 #include "system_definitions.h"
+#include "debug.h"
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility

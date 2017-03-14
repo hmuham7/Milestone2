@@ -54,6 +54,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 
 #include "motor_thread.h"
+#include "debug.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -117,7 +118,7 @@ void MOTOR_THREAD_Initialize ( void )
     /* Place the App state machine in its initial state. */
     motor_threadData.state = MOTOR_THREAD_STATE_INIT;
 
-    
+    void dbgPinsDirection();
     /* TODO: Initialize your application's state machine and other
      * parameters.
      */

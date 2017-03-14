@@ -260,8 +260,9 @@ build/default/production/_ext/327000265/drv_usart_static_byte_model.o:  \
  ../../../../framework/peripheral/ports/processor/../templates/ports_ChangeNoticeEdgeStatus_Unsupported.h  \
  ../src/motor_thread.h  \
 ../src/control_thread.h  \
-../src/uart_thread.h  \
- ../src/message_thread.h  \
+../src/debug.h  \
+ ../src/uart_thread.h  \
+../src/message_thread.h  \
 ../src/messages.h  \
-../src/jsmn.h  \
- ../src/json_parser.h 
+ ../src/jsmn.h  \
+../src/json_parser.h 
