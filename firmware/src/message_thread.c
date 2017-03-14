@@ -56,6 +56,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "message_thread.h"
 #include "json_parser.h"
 #include "messages.h"
+#include "debug.h"
 
 QueueHandle_t message_queue;
 static int LocalTime;
@@ -81,10 +82,13 @@ void MESSAGE_THREAD_InitializeQueue() {
 void MESSAGE_THREAD_Initialize ( void )
 {
     dbgOutputLoc(ENTER_MESSAGE_THREAD_INITIALIZER);
-    dbgOutputLoc(0x19);
-    
     MESSAGE_THREAD_InitializeQueue();
-    //resetLocalTime();
+    resetLocalTime();
+    
+    MsgObj obj;
+    obj.Type = SEND_REQUEST;
+    obj.Request = FRtoCMR;
+    MESSAGE_THREAD_SendToQueue(&obj);  
 }
 
 
@@ -199,8 +203,7 @@ void MESSAGE_THREAD_Tasks ( void )
                                         ",\"CommStats\":{"
                                         "\"Name\":\"%s\","
                                         "\"#GoodMsgs\":\"%d\","
-                                        "\"#MsgsDropd\":\"%d\","
-                                        //"\"#MsgsDrop\":\"%d\","    
+                                        "\"#MsgsDropd\":\"%d\","    
                                         "\"#JReqRcv\":\"%d\","
                                         "\"#JResRcv\":\"%d\","
                                         "\"#JReqSent\":\"%d\","
@@ -208,7 +211,6 @@ void MESSAGE_THREAD_Tasks ( void )
                                         ROVER_NAME,
                                         statObject.GoodCount,
                                         statObject.ErrorCount,
-                                        //obj.External.MessagesDropped - statObject.GoodCount + 1,//statObject.MessagesDropped,
                                         JSONReqRcv,
                                         JSONResRcv,
                                         JSONReqSent,
@@ -229,7 +231,7 @@ void MESSAGE_THREAD_Tasks ( void )
                             }
                         }
                         sprintf(tx_obj.Data+strlen(tx_obj.Data),"}");
-                        
+                        dbgOutputLoc(0x96);
                         char message[SIZE];
                         int len = messagecreator(message, tx_obj.Data, tx_obj.Destination, tx_obj.MsgCount);
                         int k;
@@ -264,8 +266,6 @@ void MESSAGE_THREAD_Tasks ( void )
                                 break;
                             }
                         }
-                        break;
-                        
                         unsigned int ResRcvd = statObject.Response_From_Flagrover + statObject.Response_From_Sensorrover + statObject.Response_From_Tagrover + statObject.Response_From_CMrover + statObject.Response_From_Server;
                         
                         tx_obj.Destination = obj.External.Source;
@@ -277,6 +277,15 @@ void MESSAGE_THREAD_Tasks ( void )
                                 ROVER_NAME,
                                 ResRcvd
                                 );
+                        tx_obj.MsgCount = (char) ResRcvd;
+                        char message[SIZE];
+                        int len = messagecreator(message, tx_obj.Data, tx_obj.Destination, tx_obj.MsgCount);
+                        dbgOutputLoc(0x97);
+                        int k;
+                        for(k = 0; k < len; k++) {
+                            UART_THREAD_SendToQueue(message[k]);
+                        }
+                        break;
                     }
                     case strange: {
                         break;
@@ -398,8 +407,8 @@ void MESSAGE_THREAD_ReadFromQueue(MsgObj* pvBuffer) {
     xQueueReceive(message_queue, pvBuffer, portMAX_DELAY);
 }
 
-void MESSAGE_THREAD_SendToQueue(MsgObj buffer) {
-    xQueueSend(message_queue, &buffer, portMAX_DELAY);
+void MESSAGE_THREAD_SendToQueue(MsgObj* buffer) {
+    xQueueSendToBack(message_queue, buffer, portMAX_DELAY);
 }
 
 void MESSAGE_THREAD_SendToQueueISR(MsgObj buffer, BaseType_t *pxHigherPriorityTaskWoken) {
